@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Security, status
+from fastapi import FastAPI, Security, status
+from fastapi.responses import JSONResponse
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 import re
@@ -18,21 +19,25 @@ app.add_middleware(
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
-# 🔑 المفتاح المؤقت بتاعك للتجربة (تقدر تغيره لأي كلمة تحبها)
+# 🔑 المفتاح المؤقت بتاعك للتجربة
 MY_SECRET_API_KEY = "PRO_VALIDATOR_MASTER_2026"
 
-# 🛑 عدد المحاولات المجانية (هنخليها 0 لو عايز الفخ يقفل فوراً على أي حد معندوش مفتاح)
+# 🛑 عدد المحاولات المجانية (0 عشان الفخ يقفل فوراً على أي حد معندوش مفتاح)
 FREE_LIMIT = 0 
-# هنا تقدر تستخدم متغير بسيط يعد الطلبات لو عايز، بس طالما الفخ شغال للـ Production:
-# السيستم هيرفض أي طلب ما فيهوش الـ Key الماستر بتاعك فوق.
 
 @app.get("/validate")
 async def validate_email(email: str, api_key: str = Security(api_key_header)):
     # 1. التحقق من وجود الـ API Key الصحيح
     if not api_key or api_key != MY_SECRET_API_KEY:
-        raise HTTPException(
+        # هنا المصيدة بتقفل وترجع رابط الدفع بتاع ليمون سكويز
+        return JSONResponse(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="[Email Validator Pro] Free limit reached. To unlock high-volume production validation, get your API Key instantly."
+            content={
+                "status": "failed",
+                "error": "Free tier limit reached",
+                "message": "You have exceeded the allowed free verification volume. To unlock unlimited production-grade validation immediately, subscribe to our Master API Key.",
+                "payment_url": "https://email-validator.lemonsqueezy.com/checkout/buy/3290c236-c717-4508-a993-b5ffa4e7a260"
+            }
         )
     
     # 2. لو المفتاح صح.. السيستم يشتغل وينفذ الفحص الطبيعي:
